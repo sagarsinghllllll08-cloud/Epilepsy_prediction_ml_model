@@ -1,0 +1,150 @@
+// # Import necessary libraries
+import pandas as pd
+import numpy as np
+import joblib
+import matplotlib.pyplot as plt 
+from sklearn.preprocessing import  OneHotEncoder, StandardScaler
+from sklearn.compose import ColumnTransformer 
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+    ConfusionMatrixDisplay   
+)
+
+
+// # Load datasets
+
+train = pd.read_csv("train_raw.csv")
+test = pd.read_csv("test_raw.csv")
+
+print("Original Shapes")
+print(train.shape)
+print(test.shape)
+train.head()
+test.head()
+
+
+// """This is to rmove the duplicates in the dataset, as they can cause bias in the model and affect the performance of the model."""
+
+train = train.drop_duplicates()
+test = test.drop_duplicates()
+
+// """Removes any leading or trailing whitespace characters from the coulumn names in the train and test datasets.
+// This is important because which can cause issues when trying to access or manipilate the data in the datasets. 
+// By using the str.strip() method, any whitespace characters at the beginning or end of the column names are removed, ensuring that the column names are clean and consistent."""
+  
+train.columns = train.columns.str.strip()
+test.columns = test.columns.str.strip()
+
+// """It standardizes the categorical variables in the train and test datasets by converting them to title case. 
+// This is important because it ensures that the categorical variables are consistent and can be easily compared across the datasets. 
+// By using the str.title() method, the first letter of each word in the categorical variables is capitalized, while the rest of the letters are converted to lowercase. 
+// This helps to avoid issues with case sensitivity when working with the data."""
+
+categorical_cols = train.select_dtypes(include="object").columns
+
+for col in categorical_cols:
+    train[col]= (
+        train[col]
+        .astype(str)
+        .str.strip()
+        .str.title()
+    )
+
+for col in categorical_cols:
+    test[col]= (
+        test[col]
+        .astype(str)
+        .str.strip()
+        .str.title()
+    )
+
+// """Converts numeric columns in the train and test datasets to numeric data types.
+// This is important because it allows for mathematical operations to be performed on the data, such as calculating means or standard deviations. 
+// By using the pd.to_numeric() method, any non-numeric values in the columns are coerced to NaN (not a number) values, which can be handled appropriately during analysis."""
+
+numeric_cols =[
+    "Age",
+    "Weight",
+    "Height",
+    "Seizure Frequency",
+    "Seizure Duration"
+]
+
+
+for cols in numeric_cols:
+    train[cols] = pd.to_numeric(train[cols],errors="coerce")
+    test[cols] = pd.to_numeric(test[cols],errors="coerce")
+
+// Fill missing numerical values.
+
+for cols in numeric_cols:
+    train[cols] = train[cols].fillna(train[cols].median())
+    test[cols] = test[cols].fillna(test[cols].median())
+
+// Fill missing categorical values
+
+for col in categorical_cols:
+    train[col] = train[col].fillna(train[col].mode()[0])
+    test[col]= test[col].fillna(test[col].mode()[0])
+
+// Remove impossible values
+
+train = train[
+    (train["Age"] >= 0) & (train["Age"] <= 120)&
+    (train["Weight"] >= 0)&
+    (train["Height"] >= 0)&
+    (train["Seizure Frequency"] >= 0)&
+    (train["Seizure Duration"] >= 0)
+]
+
+test = test[
+    (test["Age"] >= 0) & (test["Age"] <= 120)&
+    (test["Weight"] >= 0)&
+    (test["Height"] >= 0)&
+    (test["Seizure Frequency"] >= 0)&
+    (test["Seizure Duration"] >= 0)
+]
+// Reset index after dropping rows 
+train.reset_index(drop=True, inplace=True)
+test.reset_index(drop=True, inplace=True)
+print("\ncleaned shapes")
+print(train.shape)
+print(test.shape)
+
+print("\nMissing Values")
+print(train.isnull().sum().sum())
+print(test.isnull().sum().sum())
+
+print("\nDuplicates")
+print(train.duplicated().sum())
+print(test.duplicated().sum())
+
+// Save cleaned datasets to new CSV files 
+train.to_csv("train_clean.csv", index=False)
+test.to_csv("test_clean.csv", index=False)
+
+
+numeric_cols=[
+    "Age",
+    "Weight",
+    "Height",
+    "Seizure Frequency",
+    "Seizure Duration"
+]
+
+for col in numeric_cols:
+    plt.figure(figsize=(12,4))
+    plt.boxplot(train[col])
+    plt.title(f"Boxplot of {col} in Train Dataset")
+    plt.show()
+
+
+
+
+
+
+
+    
